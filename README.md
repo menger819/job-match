@@ -152,7 +152,7 @@ python3 --version
 **First time:** download the project from GitHub:
 
 ```bash
-git clone https://github.com/<your-username>/job-match.git
+git clone https://github.com/menger819/job-match.git
 cd job-match
 ```
 
