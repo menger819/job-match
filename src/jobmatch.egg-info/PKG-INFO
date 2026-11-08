@@ -1,0 +1,404 @@
+Metadata-Version: 2.4
+Name: jobmatch
+Version: 0.1.0
+Summary: Match your resume against jobs on 104, Cake and LinkedIn, and return the top 10.
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: anthropic>=0.75
+Requires-Dist: httpx>=0.27
+Requires-Dist: beautifulsoup4>=4.12
+Requires-Dist: pydantic>=2.6
+Requires-Dist: python-dotenv>=1.0
+Requires-Dist: pypdf>=4.0
+Requires-Dist: python-docx>=1.1
+Requires-Dist: rank-bm25>=0.2.2
+Requires-Dist: numpy<2,>=1.24; platform_system == "Darwin" and platform_machine == "x86_64"
+Requires-Dist: numpy>=1.24; platform_system != "Darwin" or platform_machine != "x86_64"
+Requires-Dist: sentence-transformers>=3.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+
+# Job Match 🎯
+
+Give it your resume. It searches **104 人力銀行**, **Cake** and **LinkedIn**, and returns your **top 10 matching jobs**:
+
+```
+1. 範例科技股份有限公司 - [Python 後端工程師](https://www.104.com.tw/job/8abcd)
+2. Acme Corp - [Backend Engineer](https://www.linkedin.com/jobs/view/4012345678)
+...
+```
+
+| | |
+|---|---|
+| **Input** | Resume file: `.pdf`, `.docx`, `.txt`, `.md` |
+| **Platforms** | https://www.104.com.tw · https://www.cake.me · https://www.linkedin.com |
+| **Output** | Top 10 jobs as `<Company> - [<Job Title>](<Job URL>)`, in the terminal and saved to `output/results.md` + `output/results.json` |
+
+---
+
+## Contents
+
+1. [Workflow](#1-workflow)
+2. [AI Techniques](#2-ai-techniques)
+3. [Operation Manual (step by step)](#3-operation-manual-step-by-step)
+4. [Roadmap: Phase 1 / 2 / 3](#4-roadmap-phase-1--2--3)
+5. [Project Structure](#5-project-structure)
+6. [Platform Notes & Limitations](#6-platform-notes--limitations)
+
+---
+
+## 1. Workflow
+
+![Job Match workflow](docs/workflow.png)
+
+<details>
+<summary>Same diagram as Mermaid (source: <code>docs/workflow.mmd</code>)</summary>
+
+```mermaid
+flowchart LR
+  A["📄 Resume<br/>.pdf / .docx / .txt / .md"] --> B["1 · Parse to text"]
+  B --> C["2 · LLM structured extraction<br/>Claude → CandidateProfile<br/>+ search queries 中文/EN"]
+  C --> D1["104 collector"]
+  C --> D2["Cake collector"]
+  C --> D3["LinkedIn collector<br/>(optional)"]
+  D1 --> E["3 · Normalize + dedupe"]
+  D2 --> E
+  D3 --> E
+  E --> F["4 · Retrieval<br/>embeddings + BM25 → top 40"]
+  F --> G["Fetch full descriptions<br/>(top 40 only)"]
+  G --> H["5 · LLM rerank / judge<br/>score 0–100 + reason"]
+  H --> I["🎯 Top 10"]
+```
+</details>
+
+| Stage | What happens | Code |
+|---|---|---|
+| **1. Parse** | Read the resume file and turn it into clean plain text. | [resume_loader.py](src/jobmatch/resume_loader.py) |
+| **2. Understand the resume** | Claude extracts a structured profile (skills, titles, seniority, years, industries, languages, location) and writes search keywords in **Traditional Chinese** (for 104 / Cake) and **English** (for LinkedIn). | [profiler.py](src/jobmatch/profiler.py) |
+| **3. Collect jobs** | Each platform collector runs the keywords (in parallel, with polite rate limits and a 24 h cache). Results are normalized into one `Job` format and duplicates removed. If one platform fails, the others continue. | [collectors/](src/jobmatch/collectors/) |
+| **4. Retrieve** | Every job is compared with your profile using embeddings (meaning) + BM25 (exact keywords). The best 40 are kept. Their full job descriptions are then downloaded. | [retrieval.py](src/jobmatch/retrieval.py) |
+| **5. Rerank** | Claude reads your resume and each of the 40 job descriptions, scores each one 0–100 and gives a one-sentence reason. The top 10 are returned. | [reranker.py](src/jobmatch/reranker.py) |
+| **6. Output** | Print the list and save `results.md` / `results.json`. | [output.py](src/jobmatch/output.py) |
+
+---
+
+## 2. AI Techniques
+
+### Used now (Phase 1)
+
+| # | Technique | Where | Model / library | Why |
+|---|---|---|---|---|
+| 1 | **LLM structured extraction** | Stage 2 | Claude (`claude-opus-5-5`), JSON-schema structured output | Resumes have no fixed format. The LLM turns free text into reliable fields, and writes search keywords in the language each platform uses. |
+| 2 | **Retrieval with embeddings** (the "R" of RAG) + BM25 | Stage 4 | `BAAI/bge-m3` (local, multilingual) via sentence-transformers; `rank-bm25` | Cheap and fast way to cut hundreds of jobs to 40. Embeddings understand that "後端工程師" ≈ "Backend Engineer"; BM25 rewards exact skills like "Kubernetes". |
+| 3 | **LLM-as-reranker / judge** | Stage 5 | Claude, structured output, prompt caching | Reads the whole job description like a recruiter would, catching seniority, domain and must-have gaps that similarity scores miss. |
+| 4 | **Retrieve → rerank design** (not a RAG chat) | Whole pipeline | — | We don't build a chatbot or fine-tune a model. A cheap retriever narrows the field, then an expensive but accurate LLM judges the shortlist. |
+
+**More detail on each:**
+
+1. **LLM structured extraction.** The resume is sent to Claude with a JSON schema ([profiler.py](src/jobmatch/profiler.py)). Structured outputs guarantee the reply parses into a `CandidateProfile`, so the rest of the code never has to deal with free-form text.
+2. **Hybrid retrieval.** The profile and every job are turned into vectors by `bge-m3`, which runs on your computer at no API cost. The score is `0.75 × cosine similarity + 0.25 × normalized BM25`. Chinese text is split into character bigrams for BM25, so no dictionary is needed. A simple location filter drops jobs clearly in another city.
+3. **LLM judge.** Jobs are scored in batches of 10 against a fixed rubric: skills, then seniority, then domain, then location and language. The resume block is identical for every batch, so it is **prompt-cached**, and later batches read it at about 10% of the normal input price. Job text is treated as untrusted data (the model is told never to follow instructions inside a job posting).
+4. **Safety net.** If Claude declines a request, the API's server-side fallback retries it on another model automatically.
+
+**Two ways to run Claude** ([llm.py](src/jobmatch/llm.py)):
+- **Claude Code login** (no API key needed): job-match runs the Claude Code program in the background (`claude -p --json-schema ...`, with all tools turned off). Usage counts toward your Claude plan.
+- **Anthropic API key**: job-match calls the Claude API directly through the official `anthropic` Python SDK.
+
+`JOBMATCH_LLM=auto` (the default) uses the API key when one is set, and otherwise uses the Claude Code login.
+
+**Rough size of one run:** 1 profile call + 4 rerank calls (40 jobs ÷ 10) ≈ 60–90 K input tokens and 5 K output tokens. With an API key on `claude-opus-5-5`, that's roughly **US$0.30–0.45 per run**. Set `JOBMATCH_MODEL=claude-sonnet-5-5` in `.env` to cut that about in half.
+
+### Planned (Phase 2 and Phase 3)
+
+**Data science and analysis**
+
+| # | Technique | Phase |
+|---|---|---|
+| 5 | Data cleaning: parse salary (月薪/年薪/面議), normalize locations, parse seniority and dates | 2 |
+| 6 | Fuzzy deduplication of cross-posted jobs (`rapidfuzz` + embedding similarity) | 2 |
+| 7 | Skill taxonomy: synonyms such as k8s → Kubernetes, 前端 → Frontend | 2 |
+| 8 | Feature engineering and a weighted hybrid score (skill overlap, seniority gap, salary fit, recency) | 2 |
+| 9 | Diversity re-ranking (MMR), so the top 10 aren't all from one company | 2 |
+| 10 | Skill-gap analysis: which required skills you have and which you're missing | 2 |
+| 11 | Offline evaluation with NDCG@10, Precision@10 and MRR on a hand-labeled set | 3 |
+| 12 | Job market report: in-demand skills, salary distribution, top cities and companies (`--report`) | 3 |
+| 13 | Job clustering (UMAP + HDBSCAN) with LLM-named clusters | 3 |
+| 14 | Feedback loop 👍/👎 → learning-to-rank (LightGBM LambdaMART) | 3 |
+| 15 | Score breakdown and explainability | 3 |
+
+**Advanced AI**
+
+| # | Technique | Phase |
+|---|---|---|
+| 16 | HyDE: embed an LLM-written "ideal job description" instead of the raw resume | 2 |
+| 17 | Cascade ranking with a cross-encoder (`bge-reranker-v2-m3`) before the LLM | 2 |
+| 18 | LLM job-description structuring (required vs. nice-to-have skills, years, remote) | 2 |
+| 19 | Model tiering and cost control (Haiku for bulk work, Batches API, token budget) | 2 |
+| 20 | Rubric-based scoring with sub-scores and quoted evidence | 2 |
+| 21 | Stronger prompt-injection guardrails for job text | 2 |
+| 22 | PII redaction before the resume is sent to the API | 2 |
+| 23 | Agentic search loop that rewrites queries when results are weak | 3 |
+| 24 | OCR for scanned PDF resumes | 3 |
+| 25 | Persistent vector store + "new matching jobs" alerts | 3 |
+| 26 | Pairwise (tournament) reranking for the final top 10 | 3 |
+| 27 | Application assistant: tailored resume bullets and cover-letter drafts | 3 |
+| 28 | LLM observability and prompt regression tests | 3 |
+
+---
+
+## 3. Operation Manual (step by step)
+
+> ⏱ First setup takes about **15 minutes**. After that, each run takes about **3–5 minutes**.
+>
+> Type every command below into the **Terminal**:
+> - **macOS:** press `⌘ + Space`, type **Terminal**, press Enter.
+> - **Windows:** open **PowerShell**.
+>
+> Copy a command, paste it into the Terminal, and press **Enter**.
+
+### Step 1: Check that Python is installed
+
+```bash
+python3 --version
+```
+
+✅ You should see `Python 3.9` or higher (for example `Python 3.9.6` or `Python 3.12.7`).
+❌ If you see `command not found`, or a version below 3.9, download Python from https://www.python.org/downloads/ and install it. Then close the Terminal, open it again, and repeat this step.
+
+> 💡 On Windows, type `python` instead of `python3` in every command.
+
+### Step 2: Go to the project folder
+
+```bash
+cd ~/Projects/job-match
+```
+
+✅ Type `ls` and press Enter. You should see `README.md` and `pyproject.toml` in the list.
+
+### Step 3: Create a virtual environment (only once)
+
+A virtual environment is a private box for this project's packages, so they don't affect anything else on your computer.
+
+```bash
+python3 -m venv .venv
+```
+
+✅ Nothing is printed. A hidden folder named `.venv` is created.
+
+### Step 4: Turn on the virtual environment (every time you open a new Terminal)
+
+```bash
+source .venv/bin/activate
+```
+
+On Windows, run this instead:
+
+```powershell
+.venv\Scripts\activate
+```
+
+✅ Your prompt now starts with `(.venv)`.
+
+### Step 5: Install the tool (only once)
+
+First update pip, the Python package installer. Older versions (such as the 21.x that comes with macOS) can't install this project:
+
+```bash
+pip install --upgrade pip
+```
+
+Then install the tool:
+
+```bash
+pip install -e .
+```
+
+✅ The last line says `Successfully installed ... jobmatch-0.1.0 ...`. This can take several minutes, because it downloads the AI libraries.
+
+### Step 6: Choose your AI engine (only once)
+
+job-match needs Claude for two steps: reading your resume, and scoring jobs. There are two ways to give it access. Pick **one**:
+
+| | **Option A: Claude Code login** (no key) | **Option B: Anthropic API key** |
+|---|---|---|
+| Who it's for | You already use Claude Code (VS Code extension, desktop app or CLI) | You have, or want, a Console account |
+| What you do | Nothing. Just be logged in to Claude Code | Create a key at https://console.anthropic.com → **Settings → API Keys** |
+| Cost | Counts toward your Claude plan's usage limits | About US$0.30–0.45 per run, billed to the Console |
+
+With **Option A**, job-match finds the Claude Code program on your computer automatically (in `PATH`, `~/.claude/local/`, or the VS Code or Cursor extension) and runs it in the background. Skip to Step 7 and leave the key line as it is.
+
+⚠️ With **Option B**, keep the key secret. Never share it or upload it anywhere.
+
+### Step 7: Create the `.env` settings file (only once)
+
+```bash
+cp .env.example .env
+open -e .env
+```
+
+On Windows, use `copy .env.example .env` and then `notepad .env`.
+
+A text editor opens.
+
+- **Option A:** change nothing. Just close the file.
+- **Option B:** replace `sk-ant-put-your-key-here` with your real key, then **save** the file.
+
+The other lines are optional:
+
+```ini
+ANTHROPIC_API_KEY=sk-ant-put-your-key-here  # keep for Option A; your key for Option B
+JOBMATCH_LLM=auto                           # auto | claude-code | api
+JOBMATCH_LOCATION=Taipei                    # default city to search
+LINKEDIN_ENABLED=true                       # change to false if LinkedIn keeps blocking
+JOBMATCH_MODEL=                             # empty = default model (opus / sonnet also work)
+JOBMATCH_EMBED_MODEL=BAAI/bge-m3            # local embedding model
+```
+
+When you run the tool, its first line tells you which engine it is using: `AI engine: Claude Code login` or `AI engine: Anthropic API key`.
+
+### Step 8: Put your resume in the `resumes/` folder
+
+Copy your resume file into the `resumes` folder inside the project, for example `resumes/my_resume.pdf`.
+
+Supported formats are `.pdf`, `.docx`, `.txt` and `.md`.
+
+💡 No resume handy? Try the fictional sample first: `jobmatch samples/resume.md`.
+
+⚠️ A **scanned** PDF (a photo of paper) has no text the tool can read. Use a `.docx` or a PDF exported from Word or Google Docs instead. For an old `.doc` file, open it in Word and use **Save As → .docx**.
+
+### Step 9: Run the job match 🚀
+
+```bash
+jobmatch resumes/my_resume.pdf
+```
+
+✅ You will see progress like this:
+
+```
+[1/5] Reading resume ...
+[2/5] Analyzing resume with AI ...
+      skills: Python, Django, AWS, PostgreSQL, Docker
+      queries: 後端工程師 Python, 軟體工程師, Backend Engineer
+[3/5] Searching 104 / cake / linkedin ...
+      243 unique jobs found (104: 60, cake: 60, linkedin: 60)
+[4/5] Matching (embeddings + BM25) ...
+[5/5] AI reranking top 40 ...
+
+🎯 Top 10 jobs:
+
+1. 範例科技股份有限公司 - [Python 後端工程師](https://www.104.com.tw/job/8abcd)  ⭐ 92  (104)
+     Strong Python/Django and AWS match at the right seniority; no Kubernetes experience.
+2. ...
+```
+
+⏳ The **first run** also downloads the local AI matching model (about 2 GB). This only happens once.
+
+### Step 10: Open your results
+
+Your results are saved in the `output/` folder:
+
+- **`output/results.md`**: the top-10 list with clickable links, plus a table of scores and reasons.
+- **`output/results.json`**: the same data in machine-readable form (for spreadsheets or scripts).
+
+On macOS you can open the list with `open output/results.md`.
+
+### Step 11 (optional): Customize your search
+
+| What you want | Command |
+|---|---|
+| Search a different city | `jobmatch resumes/my_resume.pdf --location Taichung` |
+| Show the top 20 instead of 10 | `jobmatch resumes/my_resume.pdf --top 20` |
+| Search only 104 and Cake | `jobmatch resumes/my_resume.pdf --platforms 104,cake` |
+| Collect more jobs per platform | `jobmatch resumes/my_resume.pdf --max-jobs-per-platform 100` |
+| Ignore saved results and search fresh | `jobmatch resumes/my_resume.pdf --no-cache` |
+| Save results somewhere else | `jobmatch resumes/my_resume.pdf --output-dir ~/Desktop/jobs` |
+| Show detailed logs (for debugging) | `jobmatch resumes/my_resume.pdf --verbose` |
+| See every option | `jobmatch --help` |
+
+You can combine options: `jobmatch resumes/my_resume.pdf --location Remote --top 15 --platforms 104,linkedin`.
+
+### Next time you use it
+
+Only three steps are needed:
+
+```bash
+cd ~/Projects/job-match          # Step 2
+source .venv/bin/activate        # Step 4
+jobmatch resumes/my_resume.pdf   # Step 9
+```
+
+### 🛠 Troubleshooting
+
+| Problem | Why it happens | Fix |
+|---|---|---|
+| `jobmatch: command not found` | The virtual environment is off | Do Step 4 again, then Step 9 |
+| `No ANTHROPIC_API_KEY and no Claude Code program found` | Neither engine is available | Install Claude Code and log in once (Option A), or add an API key (Option B) |
+| `Claude Code is not logged in` | Option A, but you're logged out | Open Claude Code, log in, then run again |
+| `Claude plan usage limit reached` | Option A, and your plan's limit for now is used up | Wait for the limit to reset, or use an API key (Option B) |
+| `Your ANTHROPIC_API_KEY was rejected` | Option B, and the key is wrong or was deleted | Create a new key and paste it into `.env`. Check there are no spaces or quotes around it |
+| `⚠️ linkedin: blocked (HTTP 999)` | LinkedIn limits automated access | Wait about an hour, or set `LINKEDIN_ENABLED=false` in `.env`. The other platforms still work |
+| `⚠️ cake: HTTPStatusError ... 403` | Cake's bot protection refused even the public job listing | Try again later. Results from 104 and LinkedIn are still used |
+| Cake results look unrelated to my resume | Cake keyword search is behind a bot check, so the tool reads Cake's newest-jobs listing instead | Normal. The matching step ranks them, and unrelated Cake jobs won't reach your top 10 |
+| `0 jobs found` | The search was too narrow or every platform failed | Try another `--location`, or add `--no-cache` |
+| `Cannot read resume` | The file is a scanned PDF, or nearly empty | Save your resume as `.docx` or `.txt` (Step 8) |
+| `Old Word format (.doc) is not supported` | `.doc` is the pre-2007 Word format | In Word: **File → Save As → .docx** |
+| The first run is slow | The 2 GB embedding model is downloading | Wait. Later runs start in seconds |
+
+---
+
+## 4. Roadmap: Phase 1 / 2 / 3
+
+**MVP** means *Minimum Viable Product*: the first, simplest version that already does its main job.
+
+Think of building a car 🚗. The MVP has wheels, an engine, a steering wheel and brakes, so it can already take you somewhere. Air conditioning, GPS and a sunroof come later. They make the car nicer, but you can drive without them.
+
+| Phase | Status | What it includes |
+|---|---|---|
+| **Phase 1 (MVP)** | ✅ Built | Resume → search 104 / Cake / LinkedIn → AI matching → top 10. AI techniques 1–4 |
+| **Phase 2** | Planned | Better match quality, lower cost, more safety: techniques 5–10 and 16–22 |
+| **Phase 3** | Planned | Evaluation, market insights, learning from your feedback, automation: techniques 11–15 and 23–28 |
+
+See [AI Techniques → Planned](#planned-phase-2-and-phase-3) for the full list.
+
+---
+
+## 5. Project Structure
+
+```
+job-match/
+├── README.md
+├── pyproject.toml              # dependencies + the `jobmatch` command
+├── .env.example                # copy to .env and add your API key
+├── docs/
+│   ├── workflow.png            # workflow picture (from workflow.svg)
+│   ├── workflow.svg
+│   └── workflow.mmd            # Mermaid source
+├── resumes/                    # put your resume here (ignored by git)
+├── samples/resume.md           # fictional resume to try the tool with
+├── output/                     # results.md / results.json (created on first run)
+├── src/jobmatch/
+│   ├── cli.py                  # command line options
+│   ├── pipeline.py             # runs the stages in order
+│   ├── resume_loader.py        # stage 1: pdf/docx/txt/md → text
+│   ├── llm.py                  # Claude API wrapper (structured JSON output)
+│   ├── profiler.py             # stage 2: technique 1, LLM structured extraction
+│   ├── collectors/             # stage 3: 104, Cake, LinkedIn + polite HTTP/cache
+│   ├── retrieval.py            # stage 4: technique 2, embeddings + BM25
+│   ├── reranker.py             # stage 5: technique 3, LLM judge
+│   ├── output.py               # stage 6: format + save
+│   └── models.py               # CandidateProfile, Job, MatchResult
+└── tests/                      # offline tests (fake LLM, fake embedder, saved pages)
+```
+
+**For developers:** run the tests with `pip install -e ".[dev]"` and then `pytest`. The tests make no network or API calls.
+
+---
+
+## 6. Platform Notes & Limitations
+
+- **104:** uses the same public JSON endpoints the 104 website calls. This has been the most reliable source.
+- **Cake:** tries Cake's keyword search first. Cake currently puts keyword and location search behind a Cloudflare bot check (`403`), and the tool **does not try to get around it**. It falls back to Cake's public newest-jobs listing (about 60 jobs), and the retrieval step filters those by location and relevance. Cake therefore contributes fewer relevant jobs than 104 or LinkedIn. If even the listing is refused, the run continues without Cake.
+- **LinkedIn:** uses only the public, logged-out job listing pages, at a slow rate. LinkedIn's User Agreement restricts automated access, and it may block requests (HTTP 429/999). It can be turned off with `LINKEDIN_ENABLED=false`.
+- The tool waits between requests on purpose, and caches pages for 24 hours so repeated runs don't hit the sites again.
+- **Use it for your own personal job search only.** Don't use it to bulk-collect data or to republish listings.
+- **Privacy:** your resume text is sent to the Anthropic API for the two LLM steps. Embeddings are computed locally. Removing personal details before sending (PII redaction) is planned for Phase 2.

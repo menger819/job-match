@@ -1,0 +1,9 @@
+{
+  "data": {
+    "jobDetail": {"jobDescription": "1. 設計與開發 RESTful API\n2. 維護 PostgreSQL 資料庫"},
+    "condition": {
+      "specialty": [{"code": "1", "description": "Python"}, {"code": "2", "description": "Django"}],
+      "other": "具備 AWS 經驗者佳"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+flowchart LR
+  A["📄 Resume<br/>.pdf / .docx / .txt / .md"] --> B["1 · Parse to text<br/>pypdf · python-docx"]
+  B --> C["2 · LLM structured extraction<br/>Claude → CandidateProfile<br/>+ search queries 中文/EN"]
+  C --> D1["104 collector"]
+  C --> D2["Cake collector"]
+  C --> D3["LinkedIn collector<br/>(optional)"]
+  D1 --> E["3 · Normalize + dedupe<br/>URL · company+title"]
+  D2 --> E
+  D3 --> E
+  E --> F["4 · Retrieval<br/>bge-m3 embeddings + BM25<br/>→ top 40"]
+  F --> G["Fetch full descriptions<br/>(top 40 only)"]
+  G --> H["5 · LLM rerank / judge<br/>Claude scores 0–100 + reason<br/>prompt-cached resume"]
+  H --> I["🎯 Top 10<br/>Company - [Title](URL)<br/>results.md · results.json"]

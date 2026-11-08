@@ -1,0 +1,2 @@
+[console_scripts]
+jobmatch = jobmatch.cli:main

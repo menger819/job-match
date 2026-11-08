@@ -1,0 +1,31 @@
+{
+  "data": [
+    {
+      "jobNo": "13579246",
+      "jobName": "Python 後端工程師",
+      "custName": "範例科技股份有限公司",
+      "jobAddrNoDesc": "台北市信義區",
+      "description": "負責後端 API 開發，使用 Python / Django / PostgreSQL。",
+      "salaryLow": 60000,
+      "salaryHigh": 90000,
+      "appearDate": "20261101",
+      "link": {"job": "https://www.104.com.tw/job/8abcd?jobsource=m_joblist_search", "cust": "https://www.104.com.tw/company/1a2b3c"}
+    },
+    {
+      "jobNo": "24681357",
+      "jobName": "資料工程師 Data Engineer",
+      "custName": "示範數據有限公司",
+      "jobAddrNoDesc": "新北市板橋區",
+      "description": "建置資料管線 Airflow, Spark",
+      "salaryLow": 0,
+      "salaryHigh": 0,
+      "link": {"job": "https://www.104.com.tw/job/7wxyz"}
+    },
+    {
+      "jobNo": "",
+      "jobName": "",
+      "custName": "Broken row"
+    }
+  ],
+  "metadata": {"pagination": {"currentPage": 1, "lastPage": 1}}
+}

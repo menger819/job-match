@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1010" height="1010" viewBox="0 0 1010 1010" font-family="-apple-system, 'Segoe UI', 'PingFang TC', 'Noto Sans TC', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6B7280"/>
+    </marker>
+    <style>
+      .box   { stroke-width: 2; }
+      .data  { fill: #F3F4F6; stroke: #9CA3AF; }
+      .ai    { fill: #EFEAFE; stroke: #6D4AE0; }
+      .plat  { fill: #E6F1FE; stroke: #2F7DE1; }
+      .out   { fill: #E5F6EC; stroke: #1F9D55; }
+      .in    { fill: #FFF4E0; stroke: #D9891A; }
+      .t     { font-size: 17px; font-weight: 650; fill: #111827; text-anchor: middle; }
+      .s     { font-size: 13px; fill: #374151; text-anchor: middle; }
+      .badge { font-size: 11px; font-weight: 700; fill: #FFFFFF; text-anchor: middle; letter-spacing: .4px; }
+      .edge  { stroke: #6B7280; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .join  { stroke: #6B7280; stroke-width: 2; fill: none; }
+      .lg    { font-size: 12px; fill: #374151; }
+    </style>
+  </defs>
+
+  <rect width="1010" height="1010" fill="#FFFFFF"/>
+  <g transform="translate(55,0)">
+  <text x="450" y="34" class="t" style="font-size:21px">Job Match Workflow (Phase 1)</text>
+
+  <!-- Input -->
+  <rect rx="12" class="box in" x="270" y="56" width="360" height="62"/>
+  <text x="450" y="82" class="t">📄 Resume</text>
+  <text x="450" y="103" class="s">.pdf · .docx · .txt · .md</text>
+
+  <!-- Parse -->
+  <rect rx="12" class="box data" x="270" y="150" width="360" height="62"/>
+  <text x="450" y="176" class="t">1 · Parse to plain text</text>
+  <text x="450" y="197" class="s">pypdf · python-docx · text cleanup</text>
+
+  <!-- LLM extraction -->
+  <rect rx="12" class="box ai" x="230" y="244" width="440" height="80"/>
+  <rect x="246" y="254" width="96" height="20" rx="10" fill="#6D4AE0"/>
+  <text x="294" y="268" class="badge">AI · TECH 1</text>
+  <text x="450" y="290" class="t">2 · LLM structured extraction</text>
+  <text x="450" y="311" class="s">Claude → CandidateProfile (skills, titles, seniority) + queries 中文 / EN</text>
+
+  <!-- Collectors -->
+  <rect rx="12" class="box plat" x="70" y="372" width="220" height="70"/>
+  <text x="180" y="400" class="t">104 人力銀行</text>
+  <text x="180" y="421" class="s">JSON search + detail API</text>
+
+  <rect rx="12" class="box plat" x="340" y="372" width="220" height="70"/>
+  <text x="450" y="400" class="t">Cake</text>
+  <text x="450" y="421" class="s">job pages (__NEXT_DATA__)</text>
+
+  <rect rx="12" class="box plat" x="610" y="372" width="220" height="70" stroke-dasharray="7 5"/>
+  <text x="720" y="400" class="t">LinkedIn (optional)</text>
+  <text x="720" y="421" class="s">public guest listings</text>
+
+  <!-- Dedupe -->
+  <rect rx="12" class="box data" x="270" y="492" width="360" height="62"/>
+  <text x="450" y="518" class="t">3 · Normalize + dedupe</text>
+  <text x="450" y="539" class="s">same URL · same company + title</text>
+
+  <!-- Retrieval -->
+  <rect rx="12" class="box ai" x="230" y="586" width="440" height="80"/>
+  <rect x="246" y="596" width="96" height="20" rx="10" fill="#6D4AE0"/>
+  <text x="294" y="610" class="badge">AI · TECH 2</text>
+  <text x="450" y="632" class="t">4 · Retrieval (the “R” of RAG)</text>
+  <text x="450" y="653" class="s">bge-m3 embeddings (75%) + BM25 keywords (25%) → top 40</text>
+
+  <!-- Enrich -->
+  <rect rx="12" class="box data" x="270" y="698" width="360" height="62"/>
+  <text x="450" y="724" class="t">Fetch full job descriptions</text>
+  <text x="450" y="745" class="s">only for the 40 shortlisted jobs</text>
+
+  <!-- Rerank -->
+  <rect rx="12" class="box ai" x="230" y="792" width="440" height="80"/>
+  <rect x="246" y="802" width="96" height="20" rx="10" fill="#6D4AE0"/>
+  <text x="294" y="816" class="badge">AI · TECH 3</text>
+  <text x="450" y="838" class="t">5 · LLM rerank / judge</text>
+  <text x="450" y="859" class="s">Claude scores each job 0–100 + reason · resume prompt-cached</text>
+
+  <!-- Output -->
+  <rect rx="12" class="box out" x="230" y="904" width="440" height="70"/>
+  <text x="450" y="931" class="t">🎯 Top 10 matches</text>
+  <text x="450" y="953" class="s">&lt;Company&gt; - [&lt;Job Title&gt;](URL) · results.md · results.json</text>
+
+  <!-- Edges -->
+  <path class="edge" d="M450 118 V148"/>
+  <path class="edge" d="M450 212 V242"/>
+  <path class="edge" d="M450 324 V346 H180 V370"/>
+  <path class="edge" d="M450 324 V370"/>
+  <path class="edge" d="M450 324 V346 H720 V370"/>
+  <path class="join" d="M180 442 V466 H450"/>
+  <path class="edge" d="M450 442 V490"/>
+  <path class="join" d="M720 442 V466 H450"/>
+  <path class="edge" d="M450 554 V584"/>
+  <path class="edge" d="M450 666 V696"/>
+  <path class="edge" d="M450 760 V790"/>
+  <path class="edge" d="M450 872 V902"/>
+
+  <!-- Legend -->
+  <rect x="24" y="986" width="14" height="14" rx="3" class="ai" stroke-width="2"/>
+  <text x="44" y="998" class="lg">AI step</text>
+  <rect x="110" y="986" width="14" height="14" rx="3" class="plat" stroke-width="2"/>
+  <text x="130" y="998" class="lg">Job platform</text>
+  <rect x="220" y="986" width="14" height="14" rx="3" class="data" stroke-width="2"/>
+  <text x="240" y="998" class="lg">Data processing</text>
+  <text x="876" y="998" class="lg" text-anchor="end">Design: retrieve → rerank (not a RAG chat)</text>
+  </g>
+</svg>

@@ -1,0 +1,189 @@
+{
+  "profile": {
+    "headline": "Senior Backend Engineer｜Python/Django・AWS・電商與金流系統｜6 年經驗",
+    "summary": "Backend engineer with 6 years of experience building e-commerce and payment systems. Designed order and payment APIs serving 2M monthly users using Python, Django, PostgreSQL and Redis. Migrated services to AWS ECS with Terraform, cutting infrastructure cost by 30%. Mentored 4 engineers and introduced code review and CI with GitHub Actions. Earlier built data pipelines with Airflow and Kafka and REST APIs with FastAPI. B.S. in Computer Science from National Taiwan University.",
+    "years_experience": 6.0,
+    "seniority": "senior",
+    "job_titles": [
+      "Senior Backend Engineer",
+      "Backend Engineer",
+      "Tech Lead (Backend)",
+      "Python Engineer",
+      "Platform / Cloud Backend Engineer",
+      "Data Engineer"
+    ],
+    "skills": [
+      "Python",
+      "Django",
+      "FastAPI",
+      "PostgreSQL",
+      "Redis",
+      "AWS",
+      "AWS ECS",
+      "AWS RDS",
+      "AWS S3",
+      "Terraform",
+      "Docker",
+      "REST API",
+      "Kafka",
+      "Airflow",
+      "CI/CD",
+      "GitHub Actions",
+      "Payment Systems",
+      "E-commerce Systems",
+      "Data Pipelines",
+      "Infrastructure as Code",
+      "Cloud Cost Optimization",
+      "Code Review",
+      "Team Mentoring"
+    ],
+    "industries": [
+      "E-commerce",
+      "Payments / FinTech",
+      "Internet / Software"
+    ],
+    "languages": [
+      "Mandarin (native)",
+      "English (professional)"
+    ],
+    "preferred_locations": [
+      "Taipei"
+    ],
+    "search_queries_zh": [
+      "資深後端工程師 Python",
+      "後端工程師 Django",
+      "後端工程師 AWS",
+      "電商 後端工程師",
+      "金流 後端工程師"
+    ],
+    "search_queries_en": [
+      "Senior Backend Engineer Python",
+      "Senior Backend Engineer Django AWS",
+      "Backend Tech Lead",
+      "Senior Python Developer Taipei",
+      "Payments Backend Engineer"
+    ]
+  },
+  "results": [
+    {
+      "rank": 1,
+      "company": "Pinkoi_香港商果翼科技股份有限公司台灣分公司",
+      "title": "Backend Engineer",
+      "url": "https://www.104.com.tw/job/8zosq",
+      "platform": "104",
+      "location": "台北市大同區",
+      "salary": "",
+      "llm_score": 87.0,
+      "retrieval_score": 0.5601,
+      "reason": "Strong match on Python e-commerce backend (orders, checkout, payments) in Taipei; minor gap in MySQL/Elasticsearch and the role may sit slightly below his senior level."
+    },
+    {
+      "rank": 2,
+      "company": "星星電力股份有限公司",
+      "title": "資深後端工程師",
+      "url": "https://www.104.com.tw/job/9774l",
+      "platform": "104",
+      "location": "台北市士林區",
+      "salary": "",
+      "llm_score": 86.0,
+      "retrieval_score": 0.486,
+      "reason": "Python/Django、PostgreSQL、AWS、CI/CD、資料管線與指導經驗高度吻合，主要缺口為 Databricks 經驗與能源產業背景。"
+    },
+    {
+      "rank": 3,
+      "company": "Appier",
+      "title": "Senior Software Engineer, Backend Development",
+      "url": "https://www.linkedin.com/jobs/view/4192065000",
+      "platform": "linkedin",
+      "location": "台北",
+      "salary": "",
+      "llm_score": 84.0,
+      "retrieval_score": 0.5384,
+      "reason": "Python, AWS, REST, Redis and mentoring experience meet the senior requirements; gaps in large-scale distributed systems and AdTech domain."
+    },
+    {
+      "rank": 4,
+      "company": "統一超商股份有限公司（7-ELEVEN)",
+      "title": "統一超商資深後端工程師(Senior Engineer)(技術一)",
+      "url": "https://www.cake.me/companies/7eleventw/jobs/eb5427",
+      "platform": "cake",
+      "location": "台北市, 台灣",
+      "salary": "",
+      "llm_score": 83.0,
+      "retrieval_score": 0.5347,
+      "reason": "High-traffic e-commerce backend with Python, AWS, Docker and CI/CD fits well; main gap is no Kubernetes experience."
+    },
+    {
+      "rank": 5,
+      "company": "美商夜貓子控股有限責任公司",
+      "title": "Senior Backend Engineer (Dev/Op) 資深後端工程師",
+      "url": "https://www.104.com.tw/job/7menh",
+      "platform": "104",
+      "location": "台北市松山區",
+      "salary": "110000~150000",
+      "llm_score": 80.0,
+      "retrieval_score": 0.6876,
+      "reason": "Strong Python, AWS, REST and relational DB match at senior level; the main gap is no Node.js experience."
+    },
+    {
+      "rank": 6,
+      "company": "杜浦數位安全股份有限公司",
+      "title": "【TIE｜ Network Discovery】後端工程師 Backend Engineer",
+      "url": "https://www.104.com.tw/job/7e88o",
+      "platform": "104",
+      "location": "台北市松山區",
+      "salary": "",
+      "llm_score": 80.0,
+      "retrieval_score": 0.5113,
+      "reason": "Strong match on Python, ETL pipelines, Kafka, relational databases and Docker; the gaps are Helm/Kubernetes, crawler and threat-intelligence domain experience."
+    },
+    {
+      "rank": 7,
+      "company": "TVBS_聯利媒體股份有限公司",
+      "title": "Senior Backend Engineer 資深後端工程師 (Lab Team)",
+      "url": "https://www.104.com.tw/job/7zlep",
+      "platform": "104",
+      "location": "台北市內湖區",
+      "salary": "",
+      "llm_score": 79.0,
+      "retrieval_score": 0.6623,
+      "reason": "AWS, Python, Docker, CI/CD and e-commerce backend experience fit well; the gap is limited Kubernetes and microservices orchestration experience."
+    },
+    {
+      "rank": 8,
+      "company": "LRS_英屬維京群島商杰恒國際有限公司台灣分公司",
+      "title": "Software / Backend Engineer (Senior~Principal)",
+      "url": "https://www.104.com.tw/job/924mn",
+      "platform": "104",
+      "location": "台北市信義區",
+      "salary": "1200000~2499998",
+      "llm_score": 78.0,
+      "retrieval_score": 0.6514,
+      "reason": "Meets the 5+ years, Python, AWS, REST, CI/CD and mentoring requirements; the gaps are Kubernetes, observability tooling and AI-assisted development, plus a principal-level stretch."
+    },
+    {
+      "rank": 9,
+      "company": "Not Another Headhunting Company",
+      "title": "Senior Backend Engineer (Python / FastAPI)",
+      "url": "https://www.linkedin.com/jobs/view/4476798211",
+      "platform": "linkedin",
+      "location": "臺北市, 台灣",
+      "salary": "",
+      "llm_score": 78.0,
+      "retrieval_score": 0.5862,
+      "reason": "Python/FastAPI, PostgreSQL, Kafka event-driven pipelines and 6 years of production ownership fit well; the gaps are no medical imaging/healthcare or GCP experience."
+    },
+    {
+      "rank": 10,
+      "company": "順立智慧股份有限公司",
+      "title": "RD-資深後端工程師 Senior Backend Engineer",
+      "url": "https://www.104.com.tw/job/73f51",
+      "platform": "104",
+      "location": "台北市內湖區",
+      "salary": "",
+      "llm_score": 78.0,
+      "retrieval_score": 0.5161,
+      "reason": "This is a language-flexible senior backend role that values e-commerce/payment integration and AWS, though the stack appears to be Ruby/MS SQL and requires systematic AI-tool adoption."
+    }
+  ]
+}

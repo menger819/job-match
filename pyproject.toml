@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jobmatch"
+version = "0.1.0"
+description = "Match your resume against jobs on 104, Cake and LinkedIn, and return the top 10."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "anthropic>=0.75",
+    "httpx>=0.27",
+    "beautifulsoup4>=4.12",
+    "pydantic>=2.6",
+    "python-dotenv>=1.0",
+    "pypdf>=4.0",
+    "python-docx>=1.1",
+    "rank-bm25>=0.2.2",
+    # Intel Macs only get torch 2.2.x, which was built against NumPy 1.x.
+    "numpy>=1.24,<2; platform_system == 'Darwin' and platform_machine == 'x86_64'",
+    "numpy>=1.24; platform_system != 'Darwin' or platform_machine != 'x86_64'",
+    "sentence-transformers>=3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+jobmatch = "jobmatch.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
